@@ -75,7 +75,7 @@ function rule_callable(input)
         return false
     end
 
-    return mt.__call ~= nil
+    return mt.__call ~= nil and type(mt.__call) == 'function'
 end
 
 
