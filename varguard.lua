@@ -31,18 +31,37 @@ function varguard_parse_validators(validators)
     return results
 end
 
-function varguard_verify(rules)
-    if type(rules) ~= 'table' then
-        return false, 'Rules is not table, nil given.'
+function varguard_verify(rules, data)
+    if not data then
+        return false, 'Data is nil.'
     end
 
+    if type(rules) ~= 'table' then
+        return false, 'Rules is not table, ' .. type(rules) .. ' given.'
+    end
+
+    local validatedData = {}
+
     for k, v in pairs(rules) do
-        if type(k) == 'number' then
-            return false, ('Rules[%s] is not a key value paired.'):format(k)
+
+        if v == '' then
+            validatedData[k] = data[k]
+        end
+
+        local validators = varguard_parse_validators(v)
+        for ruleName, args in pairs(validators) do
+            local ruleHandler = _G['rule_' .. ruleName]
+            if not ruleHandler then
+                error(('Rule [%s] has no handler.'):format(ruleName))
+            end
+            if not ruleHandler(data[k], args) then
+                return false, ('Rule [%s] returned falsy for `%s`.'):format(ruleName, k)
+            end
+            validatedData[k] = data[k]
         end
     end
 
-    return true
+    return true, validatedData
 end
 
 function rule_required(input)
@@ -57,7 +76,6 @@ function rule_type(input, types)
     end
     return false
 end
-
 
 function rule_callable(input)
     local typeOfInput = type(input)
@@ -78,7 +96,6 @@ function rule_callable(input)
     return mt.__call ~= nil and type(mt.__call) == 'function'
 end
 
-
 function rule_max(input, args)
     local max = args[1]
     if not max then
@@ -93,7 +110,6 @@ function rule_max(input, args)
 
     return input <= max
 end
-
 
 function rule_min(input, args)
     local min = args[1]
