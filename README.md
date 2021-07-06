@@ -2,7 +2,7 @@
 
 Simple API to validate input inspired by [PHP-Laravel](https://laravel.com/docs/8.x/validation) framework.
 
-### Usage
+## Usage
 
 ```lua
 require('varguard')
@@ -29,7 +29,11 @@ local isValid, values = varguard_verify(rules, data)
 ]]
 ```
 
-### LICENSE
+## Todo
+* Support nested table.
+* Add more rules.
+
+## LICENSE
 
 ```
 MIT License
