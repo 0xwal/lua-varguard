@@ -3,7 +3,7 @@
 --- DateTime: 5/4/21 12:42 AM
 ---
 
-local function splitter(string, sep)
+local function explode(string, sep)
     sep     = sep or '%s'
     local t = {}
     for str in string.gmatch(string, "([^" .. sep .. "]+)") do
@@ -14,16 +14,16 @@ end
 
 function varguard_parse_validators(validators)
 
-    local allValidators = splitter(validators, '|')
+    local allValidators = explode(validators, '|')
     local results       = {}
     for _, v in ipairs(allValidators) do
-        local st    = splitter(v, ':')
+        local st    = explode(v, ':')
 
         local vName = st[1]
         local args  = {}
 
         if st[2] then
-            args = splitter(st[2], ',?%s')
+            args = explode(st[2], ',?%s')
         end
         results[vName] = args
     end
@@ -42,22 +42,22 @@ function varguard_verify(rules, data)
 
     local validatedData = {}
 
-    for k, v in pairs(rules) do
+    for ruleKey, ruleLine in pairs(rules) do
 
-        if v == '' then
-            validatedData[k] = data[k]
+        if ruleLine == '' then
+            validatedData[ruleKey] = data[ruleKey]
         end
 
-        local validators = varguard_parse_validators(v)
+        local validators = varguard_parse_validators(ruleLine)
         for ruleName, args in pairs(validators) do
             local ruleHandler = _G['rule_' .. ruleName]
             if not ruleHandler then
                 error(('Rule [%s] has no handler.'):format(ruleName))
             end
-            if not ruleHandler(data[k], args) then
-                return false, ('Rule [%s] returned falsy for `%s`.'):format(ruleName, k)
+            if not ruleHandler(data[ruleKey], args) then
+                return false, ('Rule [%s] returned falsy for `%s`.'):format(ruleName, ruleKey)
             end
-            validatedData[k] = data[k]
+            validatedData[ruleKey] = data[ruleKey]
         end
     end
 
