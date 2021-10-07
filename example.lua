@@ -5,25 +5,58 @@
 
 require('varguard')
 
+function print_table(t, indent)
+    if not t then
+        return
+    end
+    if not indent then
+        indent = 0
+    end
+    local formatting
+    if type(t) ~= 'table' then
+        formatting = string.rep("  ", indent)
+        print(formatting .. tostring(t))
+        return
+    end
+    for k, v in pairs(t) do
+        formatting = string.rep("  ", indent) .. k .. ": "
+        if type(v) == "table" then
+            print(formatting)
+            print_table(v, indent + 1)
+        else
+            print(formatting .. tostring(v))
+        end
+    end
+end
+
+
 local dataSchema = {
     name = '',
     lan  = '',
-    day  = 'required|type:number|min:3|max:4'
+    day  = 'required|type:number|min:3|max:4',
+    tech = 'required',
+    ['tech.name'] = 'required',
+    ['tech.major'] = 'required',
+    ['tech.major.number'] = 'required'
 }
 
 local data       = {
     name = 'waleed',
     lan  = 'ar',
-    day = 5
+    day = 3,
+    tech = {
+        name = "asp",
+        major = {
+            --number = '145'
+        }
+    }
 }
 
-local isValid, values = varguard_verify(dataSchema, data)
-print(isValid)
+local isValid, values = VarGuard(dataSchema, data):validate()
+print(string.format('(was %s', (isValid and 'valid)' or 'not valid)')))
 
 if isValid then
-    for k, v in pairs(values) do
-        print(k, v)
-    end
+   print_table(values, 1)
 else
     print(values)
 end

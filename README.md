@@ -18,7 +18,7 @@ local data = {
     discarded = 'filtered from `values` as it is not exist in rules'
 }
 
-local isValid, values = varguard_verify(rules, data)
+local isValid, values = VarGuard(rules, data):validate()
 
 --[[
     isValid -> true

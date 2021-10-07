@@ -13,52 +13,45 @@ describe('varguard_verify', function()
         assert.is_not_nil(varguard_verify)
     end)
 
-    it('should return (false, error) if first argument is not table', function()
-        assert.are_same({ false, 'Rules is not table, nil given.' }, { varguard_verify(nil, {}) })
-        assert.are_same({ false, 'Rules is not table, boolean given.' }, { varguard_verify(true, {}) })
-        assert.are_same({ false, 'Rules is not table, number given.' }, { varguard_verify(1, {}) })
-        assert.are_same({ false, 'Rules is not table, function given.' }, { varguard_verify(function()
-        end, {}) })
-    end)
-
     it('should return true when rules is empty', function()
-        assert.is_true(varguard_verify({}, {}))
+        assert.is_true(VarGuard({}, {}):passes())
     end)
 
-    it('should return (false, error message) when data is nil', function()
-        assert.is_equal(table.unpack { false, 'Data is nil.' }, varguard_verify({}, nil))
+    it('should return false when input is nil and rules is not empty', function()
+        assert.is_false(VarGuard({ id = 1 }, nil):passes())
+        assert.is_true(VarGuard({ id = 1 }, nil):fails())
     end)
 
     it('should throw error when rule is not exist', function()
         assert.was_error(function()
-            varguard_verify({
+            VarGuard({
                 name = 'rule_not_exist'
-            }, { name = 'Waleed' })
+            }, { name = 'Waleed' }):validate()
         end, 'Rule [rule_not_exist] has no handler.')
     end)
 
     it('should invoke the rule handler', function()
         _G.rule_check = spy()
-        varguard_verify({
+        VarGuard({
             name = 'check'
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
         assert.spy(_G.rule_check).was_called(1)
     end)
 
     it('should invoke the rule handler with required value', function()
         _G.rule_check = spy()
-        varguard_verify({
+        VarGuard({
             name = 'check'
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
         assert.spy(_G.rule_check).was_called_with('Waleed', {})
     end)
 
     it('should return (false, error) when rule return false', function()
         stub(_G, 'rule_check')
         _G.rule_check.returns(false)
-        local isSuccess, error = varguard_verify({
+        local isSuccess, error = VarGuard({
             name = 'check'
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
         assert.is_false(isSuccess)
         assert.is_equal('Rule [check] returned falsy for `name`.', error)
     end)
@@ -66,9 +59,9 @@ describe('varguard_verify', function()
     it('should return true when rule return true', function()
         stub(_G, 'rule_check')
         _G.rule_check.returns(true)
-        local result = varguard_verify({
+        local result = VarGuard({
             name = 'check'
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
         assert.is_true(result)
     end)
 
@@ -77,17 +70,17 @@ describe('varguard_verify', function()
         stub(_G, 'rule_check2')
         _G.rule_check1.returns(true)
         _G.rule_check2.returns(false)
-        local isSuccess, error = varguard_verify({
+        local isSuccess, error = VarGuard({
             name = 'check1|check2'
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
         assert.is_false(isSuccess)
         assert.is_equal('Rule [check2] returned falsy for `name`.', error)
     end)
 
     it('should return true and validated data when rule is empty', function()
-        local isSuccess, data = varguard_verify({
+        local isSuccess, data = VarGuard({
             name = ''
-        }, { name = 'Waleed' })
+        }, { name = 'Waleed' }):validate()
 
         assert.is_equal(true, isSuccess)
         assert.is_same({ name = 'Waleed' }, data)
@@ -96,103 +89,154 @@ describe('varguard_verify', function()
     it('should return (true, validated data) for multiple values', function()
         stub(_G, 'rule_check')
         _G.rule_check.returns(true)
-        local isSuccess, data = varguard_verify({
+        local isSuccess, data = VarGuard({
             name = 'check',
             lan  = ''
-        }, { name = 'Waleed', lan = 'ar' })
+        }, { name = 'Waleed', lan = 'ar' }):validate()
 
         assert.is_equal(true, isSuccess)
         assert.is_same({ name = 'Waleed', lan = 'ar' }, data)
     end)
 
-    it('should remove data that is not exist in rules', function()
-        local isSuccess, data = varguard_verify({
-            name = '',
-            lan  = ''
-        }, { name = 'Waleed', lan = 'ar', something = true })
+    --it('should remove data that is not exist in rules', function()
+    --    local isSuccess, data = varguard_verify({
+    --        name = '',
+    --        lan  = ''
+    --    }, { name = 'Waleed', lan = 'ar', something = true })
+    --
+    --    assert.is_equal(true, isSuccess)
+    --    assert.is_same({ name = 'Waleed', lan = 'ar' }, data)
+    --end)
 
-        assert.is_equal(true, isSuccess)
-        assert.is_same({ name = 'Waleed', lan = 'ar' }, data)
-    end)
+    describe('object', function()
+        local dataInput, rules
+        before_each(function()
+            dataInput = {}
+            rules     = {}
+        end)
 
-end)
+        describe('invalid input', function()
+            it('should return(false, error) when the field of single nested object is not exist', function()
+                dataInput.person        = {}
 
---[[ returns
-    validator:
-        args
-]]--
-describe('varguard_parse_validators', function()
-    it('should exist', function()
-        assert.is_not_nil(varguard_parse_validators)
-    end)
+                rules['person.name']    = 'required'
 
-    it('should return array of validators', function()
-        assert.is_same({
-            required = {}
-        }, varguard_parse_validators('required'))
-    end)
+                local isSuccess, errMsg = VarGuard(rules, dataInput):validate()
 
-    it('should parse a validator with arguments', function()
-        assert.is_same({
-            required = { 'arg' }
-        }, varguard_parse_validators('required:arg'))
-    end)
+                assert.is_equal(false, isSuccess)
+                assert.is_equal('Rule [required] returned falsy for `person.name`.', errMsg)
+            end)
 
-    it('should parse multiple arguments', function()
-        assert.is_same({
-            required = { 'first', 'second' }
-        }, varguard_parse_validators('required:first,second'))
-    end)
+            it('should return(false, error) when the one field of multi fields object is not exist', function()
+                dataInput.person        = {
+                    name = "Waleed"
+                }
 
-    it('should parse multiple validators without args', function()
-        assert.is_same({
-            required = {},
-            type     = {}
-        }, varguard_parse_validators('required|type'))
-    end)
+                rules['person.name']    = 'required'
+                rules['person.country'] = 'required'
 
-    it('should parse multiple validators with args', function()
-        assert.is_same({
-            required = {
-                'now'
-            },
-            type     = {
-                'string'
-            }
-        }, varguard_parse_validators('required:now|type:string'))
-    end)
+                local isSuccess, errMsg = VarGuard(rules, dataInput):validate()
 
-    it('should parse multiple validators with multi arguments', function()
-        assert.is_same({
-            required = {
-                'now',
-                'right'
-            },
-            type     = {
-                'string',
-                'table'
-            }
-        }, varguard_parse_validators('required:now,right|type:string,table'))
-    end)
+                assert.is_equal(false, isSuccess)
+                assert.is_equal('Rule [required] returned falsy for `person.country`.', errMsg)
+            end)
 
-    it('should ignore empty line after comma in the args', function()
-        assert.is_same({
-            required = {
-                'now',
-                'right'
-            },
-            type     = {
-                'string',
-                'table'
-            }
-        }, varguard_parse_validators('required:now, right|type:string, table'))
-    end)
+            it('should return(false, error) when the field of multi nested object is not exist', function()
+                dataInput.person                = {
+                    address = {
 
-    it('should ignore arguments when validator has a colon', function()
-        assert.is_same({
-            required = {},
-            type     = {}
-        }, varguard_parse_validators('required:|type:'))
+                    }
+                }
+
+                rules['person.address']         = 'required'
+                rules['person.address.country'] = 'required'
+
+                local isSuccess, errMsg         = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(false, isSuccess)
+                assert.is_equal('Rule [required] returned falsy for `person.address.country`.', errMsg)
+            end)
+
+            it('should return(false, error) when one field of multi fields nested object is not exist', function()
+                dataInput.person                = {
+                    address = {
+                        country = 'KSA'
+                    }
+                }
+
+                rules['person.address']         = 'required'
+                rules['person.address.country'] = 'required'
+                rules['person.address.city']    = 'required'
+
+                local isSuccess, errMsg         = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(false, isSuccess)
+                assert.is_equal('Rule [required] returned falsy for `person.address.city`.', errMsg)
+            end)
+        end)
+
+        describe('valid input', function()
+            it('should able to validate single nest object with single field', function()
+                dataInput.person                 = { name = 'Waleed' }
+
+                rules['person.name']             = 'required'
+
+                local isSuccess, validatedFields = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(true, isSuccess)
+                assert.is_same(dataInput, validatedFields)
+            end)
+
+            it('should able to validate single nest object with multiple field', function()
+                dataInput.person                 = {
+                    name     = 'Waleed',
+                    language = 'ar'
+                }
+
+                rules['person.name']             = 'required'
+                rules['person.language']         = 'required'
+
+                local isSuccess, validatedFields = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(true, isSuccess)
+                assert.is_same(dataInput, validatedFields)
+            end)
+
+            it('should able to validate multiple nest object with single field', function()
+                dataInput.person                 = {
+                    address = {
+                        country = 'Saudi Arabia'
+                    }
+                }
+
+                rules['person.address']          = 'required'
+                rules['person.address.country']  = 'required'
+
+                local isSuccess, validatedFields = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(true, isSuccess)
+                assert.is_same(dataInput, validatedFields)
+            end)
+
+            it('should able to validate multiple nest object with multi fields', function()
+                dataInput.person                 = {
+                    address = {
+                        country = 'Saudi Arabia',
+                        city    = 'RY'
+                    }
+                }
+
+                rules['person.address']          = 'required'
+                rules['person.address.country']  = 'required'
+                rules['person.address.city']     = 'required'
+
+                local isSuccess, validatedFields = VarGuard(rules, dataInput):validate()
+
+                assert.is_equal(true, isSuccess)
+                assert.is_same(dataInput, validatedFields)
+            end)
+        end)
+
     end)
 end)
 
