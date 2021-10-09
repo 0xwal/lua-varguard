@@ -43,25 +43,6 @@ function ValidationRule.new(ruleLine)
     return o
 end
 
-function varguard_parse_validators(validators)
-
-    local allValidators = explode(validators, '|')
-    local results       = {}
-    for _, v in ipairs(allValidators) do
-        local st    = explode(v, ':')
-
-        local vName = st[1]
-        local args  = {}
-
-        if st[2] then
-            args = explode(st[2], ',?%s')
-        end
-        results[vName] = args
-    end
-
-    return results
-end
-
 local VarGuardMT   = {}
 VarGuardMT.__index = VarGuardMT
 
@@ -74,7 +55,7 @@ function VarGuardMT:_getValueOfAttribute(attribute)
     end
 
     local captured = data
-    for keyIndex, key in ipairs(keys) do
+    for _, key in ipairs(keys) do
 
         if type(captured) == 'table' and captured[key] then
             captured = captured[key]
@@ -105,7 +86,7 @@ function VarGuardMT:_isValid(attribute, rule)
 end
 
 function VarGuardMT:validate()
-    local rules = self:_mapRules()
+    local rules  = self:_mapRules()
     local errors = {}
     for attribute, theRules in pairs(rules) do
 
@@ -131,8 +112,7 @@ function VarGuardMT:passes()
 end
 
 function VarGuardMT:fails()
-    local status = pcall(self.validate, self)
-    return status == false
+    return not self:passes()
 end
 
 function VarGuardMT:errors()
