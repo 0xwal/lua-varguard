@@ -45,18 +45,19 @@ local data       = {
     lan  = 'ar',
     day = 3,
     tech = {
-        name = "asp",
+        --name = "asp",
         major = {
             --number = '145'
         }
     }
 }
 
-local isValid, values = VarGuard(dataSchema, data):validate()
+local validation = VarGuard(dataSchema, data)
+local isValid, values = validation:validate()
 print(string.format('(was %s', (isValid and 'valid)' or 'not valid)')))
 
 if isValid then
    print_table(values, 1)
 else
-    print(values)
+    print_table(validation:errors())
 end

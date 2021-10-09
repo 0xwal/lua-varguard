@@ -106,15 +106,21 @@ end
 
 function VarGuardMT:validate()
     local rules = self:_mapRules()
+    local errors = {}
     for attribute, theRules in pairs(rules) do
 
         for _, rule in ipairs(theRules) do
 
             if not self:_isValid(attribute, rule) then
-                return false, ('Rule [%s] returned falsy for `%s`.'):format(rule, attribute)
+                local msg = ('Rule [%s] returned falsy for `%s`.'):format(rule, attribute)
+                table.insert(errors, msg)
             end
 
         end
+    end
+    self._errors = errors
+    if #errors > 0 then
+        return false, errors[1]
     end
     return true, self._input
 end
@@ -129,14 +135,24 @@ function VarGuardMT:fails()
     return status == false
 end
 
+function VarGuardMT:errors()
+    self:validate()
+    return self._errors
+end
+
+function VarGuardMT:first()
+    return self:errors()[1]
+end
+
 function VarGuard(rules, input)
     if type(rules) ~= 'table' then
         error('Rules is not table, ' .. type(rules) .. ' given.')
     end
     local o = {}
     setmetatable(o, VarGuardMT)
-    o._rules = rules
-    o._input = input
+    o._rules  = rules
+    o._input  = input
+    o._errors = {}
     return o
 end
 

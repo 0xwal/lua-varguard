@@ -98,6 +98,47 @@ describe('varguard_verify', function()
         assert.is_same({ name = 'Waleed', lan = 'ar' }, data)
     end)
 
+    it('should able to get all errors', function()
+        stub(_G, 'rule_check1')
+        stub(_G, 'rule_check2')
+        _G.rule_check1.returns(false)
+        _G.rule_check2.returns(false)
+        local errors = VarGuard({
+            id = 'check1|check2',
+            name = 'check1|check2'
+        }, { name = 'Waleed' }):errors()
+        assert.is_array(#errors)
+        assert.is_equal(#errors, 4)
+        -- table is not always in the same order due to have lua works
+        if errors[1]:find('id') then
+            assert.are_same({
+                'Rule [check1] returned falsy for `id`.',
+                'Rule [check2] returned falsy for `id`.',
+                'Rule [check1] returned falsy for `name`.',
+                'Rule [check2] returned falsy for `name`.'
+            }, errors)
+        else
+            assert.are_same({
+                'Rule [check1] returned falsy for `name`.',
+                'Rule [check2] returned falsy for `name`.',
+                'Rule [check1] returned falsy for `id`.',
+                'Rule [check2] returned falsy for `id`.'
+            }, errors)
+        end
+    end)
+
+    it('should able to get the first error', function()
+        stub(_G, 'rule_check1')
+        stub(_G, 'rule_check2')
+        _G.rule_check1.returns(false)
+        _G.rule_check2.returns(false)
+        local validation = VarGuard({
+            id = 'check1|check2',
+        }, { name = 'Waleed' })
+        assert.is_equal(2, #validation:errors())
+        assert.is_equal(validation:errors()[1], validation:first())
+    end)
+
     --it('should remove data that is not exist in rules', function()
     --    local isSuccess, data = varguard_verify({
     --        name = '',
