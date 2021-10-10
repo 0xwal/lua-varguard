@@ -7,28 +7,35 @@ Simple API to validate input inspired by [PHP-Laravel](https://laravel.com/docs/
 ```lua
 require('varguard')
 
-local rules = {
-    name = 'required|type:string',
-    day  = 'required|type:number|min:3|max:4'
+function rule_email(value, args)
+    -- check if not email return false
+    return false
+end
+
+local rules           = {
+    name                = 'required|type:string',
+    email               = 'required|type:string|email',
+    ['address.country'] = 'required',
+    ['address.city']    = 'required'
 }
 
-local data = {
-    name = 'lua',
-    day = 4,
-    discarded = 'filtered from `values` as it is not exist in rules'
-}
-
-local isValid, values = VarGuard(rules, data):validate()
-
---[[
-    isValid -> true
-    values -> {
-        name = 'lua',
-        day = 4
+local data            = {
+    name    = 'lua',
+    email   = 'not-email',
+    address = {
+        country = 'SA',
+        -- city    = 'RY'
     }
-]]
+}
+
+local validation = VarGuard(rules, data)
+local isValid, values = validation:validate()
+-- isValid == status of validation
+print(validation:passes())
+print(#validation:errors())
 ```
 
 ## Todo
-* Support nested table.
+
 * Add more rules.
+* Support Array of Objects
