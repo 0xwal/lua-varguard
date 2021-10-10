@@ -78,6 +78,9 @@ function VarGuardMT:_mapRules()
 end
 
 function VarGuardMT:validate()
+    if not self._input then
+        return false, 'Input is nil'
+    end
     local mappedRules = self:_mapRules()
     local errors      = {}
     for attribute, rules in pairs(mappedRules) do
@@ -101,8 +104,8 @@ function VarGuardMT:validate()
 end
 
 function VarGuardMT:passes()
-    local status = pcall(self.validate, self)
-    return status == true
+    local isValid = self:validate()
+    return isValid == true
 end
 
 function VarGuardMT:fails()

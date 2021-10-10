@@ -18,8 +18,8 @@ describe('varguard_verify', function()
     end)
 
     it('should return false when input is nil and rules is not empty', function()
-        assert.is_false(VarGuard({ id = 1 }, nil):passes())
-        assert.is_true(VarGuard({ id = 1 }, nil):fails())
+        assert.is_false(VarGuard({ id = '' }, nil):passes())
+        assert.is_true(VarGuard({ id = '' }, nil):fails())
     end)
 
     it('should throw error when rule is not exist', function()
@@ -104,7 +104,7 @@ describe('varguard_verify', function()
         _G.rule_check1.returns(false)
         _G.rule_check2.returns(false)
         local errors = VarGuard({
-            id = 'check1|check2',
+            id   = 'check1|check2',
             name = 'check1|check2'
         }, { name = 'Waleed' }):errors()
         assert.is_array(#errors)
@@ -148,6 +148,20 @@ describe('varguard_verify', function()
     --    assert.is_equal(true, isSuccess)
     --    assert.is_same({ name = 'Waleed', lan = 'ar' }, data)
     --end)
+
+    it('should return false for empty input', function()
+        local rules = { name = 'required' }
+        local validation = VarGuard(rules, {})
+        assert.is_false(validation:passes())
+    end)
+
+    it('should be different instance for each call', function()
+        local rules = { name = 'required' }
+        local firstValidation = VarGuard(rules, { name = 'Waleed' })
+        local secondValidation = VarGuard(rules, {})
+        assert.is_true(firstValidation:passes())
+        assert.is_false(secondValidation:passes())
+    end)
 
     describe('object', function()
         local dataInput, rules
