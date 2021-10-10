@@ -77,22 +77,16 @@ function VarGuardMT:_mapRules()
     return out
 end
 
-function VarGuardMT:_isValid(attribute, rule)
-    local validationRule = ValidationRule.new(rule)
-
-    local value          = self:_getValueOfAttribute(attribute)
-
-    return validationRule:validate(value)
-end
-
 function VarGuardMT:validate()
-    local rules  = self:_mapRules()
-    local errors = {}
-    for attribute, theRules in pairs(rules) do
+    local mappedRules = self:_mapRules()
+    local errors      = {}
+    for attribute, rules in pairs(mappedRules) do
 
-        for _, rule in ipairs(theRules) do
+        for _, rule in ipairs(rules) do
 
-            if not self:_isValid(attribute, rule) then
+            local value = self:_getValueOfAttribute(attribute)
+
+            if not ValidationRule.new(rule):validate(value) then
                 local msg = ('Rule [%s] returned falsy for `%s`.'):format(rule, attribute)
                 table.insert(errors, msg)
             end
