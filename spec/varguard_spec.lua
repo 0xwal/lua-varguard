@@ -106,7 +106,7 @@ describe('varguard_verify', function()
         local errors = VarGuard({
             id   = 'check1|check2',
             name = 'check1|check2'
-        }, { name = 'Waleed' }):errors()
+        }, { id = 1, name = 'Waleed' }):errors()
         assert.is_array(#errors)
         assert.is_equal(#errors, 4)
         -- table is not always in the same order due to have lua works
@@ -134,9 +134,18 @@ describe('varguard_verify', function()
         _G.rule_check2.returns(false)
         local validation = VarGuard({
             id = 'check1|check2',
-        }, { name = 'Waleed' })
+        }, { id = 1, name = 'Waleed' })
         assert.is_equal(2, #validation:errors())
         assert.is_equal(validation:errors()[1], validation:first())
+    end)
+
+    it('should pass when value is not required and nil when using rule_type', function()
+        local isSuccess, data = VarGuard({
+            name = 'type:string'
+        }, {}):validate()
+
+        assert.is_equal(true, isSuccess)
+        assert.is_same({}, data)
     end)
 
     --it('should remove data that is not exist in rules', function()
@@ -150,14 +159,14 @@ describe('varguard_verify', function()
     --end)
 
     it('should return false for empty input', function()
-        local rules = { name = 'required' }
+        local rules      = { name = 'required' }
         local validation = VarGuard(rules, {})
         assert.is_false(validation:passes())
     end)
 
     it('should be different instance for each call', function()
-        local rules = { name = 'required' }
-        local firstValidation = VarGuard(rules, { name = 'Waleed' })
+        local rules            = { name = 'required' }
+        local firstValidation  = VarGuard(rules, { name = 'Waleed' })
         local secondValidation = VarGuard(rules, {})
         assert.is_true(firstValidation:passes())
         assert.is_false(secondValidation:passes())

@@ -21,10 +21,15 @@ function ValidationRuleMT:validate(value)
     if not handler then
         error(('Rule [%s] has no handler.'):format(self._ruleName))
     end
+
+    if not value and self._isOptional then
+        return true
+    end
+
     return handler(value, self._args)
 end
 
-function ValidationRule.new(ruleLine)
+function ValidationRule.new(ruleLine, isOptional)
     local o = {}
     setmetatable(o, ValidationRuleMT)
 
@@ -39,6 +44,7 @@ function ValidationRule.new(ruleLine)
 
     o._ruleName = ruleName
     o._args     = args
+    o._isOptional = isOptional
 
     return o
 end
@@ -72,7 +78,8 @@ function VarGuardMT:_mapRules()
     local rules = self._rules
     local out   = {}
     for key, rule in pairs(rules) do
-        out[key] = explode(rule, '|')
+        local isRequired = string.find(rule, 'required')
+        out[string.format('%s%s', isRequired and '' or '?', key)] = explode(rule, '|')
     end
     return out
 end
@@ -84,12 +91,17 @@ function VarGuardMT:validate()
     local mappedRules = self:_mapRules()
     local errors      = {}
     for attribute, rules in pairs(mappedRules) do
+        local isOptional = string.find(attribute, '?') ~= nil
+
+        if isOptional then
+            attribute = string.sub(attribute, 2)
+        end
 
         for _, rule in ipairs(rules) do
 
             local value = self:_getValueOfAttribute(attribute)
 
-            if not ValidationRule.new(rule):validate(value) then
+            if not ValidationRule.new(rule, isOptional):validate(value) then
                 local msg = ('Rule [%s] returned falsy for `%s`.'):format(rule, attribute)
                 table.insert(errors, msg)
             end
